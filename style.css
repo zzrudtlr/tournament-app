@@ -1,0 +1,559 @@
+/* ===== SECTION CARDS ===== */
+.section-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.section-header {
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  color: white;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+/* ===== FORM INPUTS ===== */
+.input-field {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  background: white;
+}
+.input-field:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ===== TABS ===== */
+.tab-btn {
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  cursor: pointer;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.active-tab {
+  border-bottom-color: #6366f1 !important;
+  color: #6366f1 !important;
+  font-weight: 600;
+}
+
+.result-tab {
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  cursor: pointer;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.active-result-tab {
+  border-bottom-color: #6366f1 !important;
+  color: #6366f1 !important;
+  font-weight: 600;
+}
+
+/* ===== GRADE BADGES ===== */
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.grade-S  { background: #fef3c7; color: #92400e; }
+.grade-A  { background: #dbeafe; color: #1e40af; }
+.grade-B  { background: #d1fae5; color: #065f46; }
+.grade-C  { background: #ede9fe; color: #5b21b6; }
+.grade-D  { background: #fee2e2; color: #991b1b; }
+.grade-초보 { background: #f3f4f6; color: #6b7280; }
+
+/* ===== PARTICIPANT TABLE ===== */
+.btn-icon {
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+.btn-icon:hover { background: #f3f4f6; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transform: translateY(120%);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  max-width: 340px;
+}
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+.toast.success { background: #10b981; }
+.toast.error   { background: #ef4444; }
+.toast.info    { background: #6366f1; }
+
+/* ===== GROUP CARDS ===== */
+.group-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  transition: box-shadow 0.2s;
+}
+.group-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+.group-card-header {
+  background: linear-gradient(135deg, #374151, #1f2937);
+  color: white;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.team-block {
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+}
+.team-block-1 { background: #eff6ff; border-color: #bfdbfe; }
+.team-block-2 { background: #f0fdf4; border-color: #bbf7d0; }
+.team-block-3 { background: #fefce8; border-color: #fde68a; }
+.team-block-4 { background: #fdf4ff; border-color: #e9d5ff; }
+
+.match-block {
+  background: linear-gradient(135deg, #fff7ed, #fef3c7);
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #92400e;
+  margin-top: 8px;
+}
+
+/* ===== BALANCE BAR ===== */
+.balance-bar-wrap {
+  background: #f3f4f6;
+  border-radius: 9999px;
+  height: 6px;
+  overflow: hidden;
+}
+.balance-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width 0.4s ease;
+}
+
+/* ===== TOURNAMENT BRACKET ===== */
+.bracket-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.bracket-wrap {
+  display: inline-flex;
+  gap: 0;
+  padding: 12px 8px;
+  min-width: max-content;
+}
+
+.bracket-round-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+}
+
+.bracket-round-label {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px 10px;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 12px;
+}
+
+.bracket-matches-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+.bracket-match-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  position: relative;
+}
+.bracket-match-card.bye-card { opacity: 0.55; }
+.bracket-match-card.champion-card {
+  background: linear-gradient(135deg, #fef9c3, #fef08a);
+  border-color: #fbbf24;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+.bracket-team-row {
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  border-radius: 5px;
+  background: #f9fafb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  color: #1f2937;
+  font-weight: 500;
+}
+.bracket-team-row.is-bye  { color: #d1d5db; font-style: italic; font-weight: 400; }
+.bracket-team-row.is-tbd  { color: #9ca3af; font-style: italic; font-weight: 400; }
+.bracket-team-row.champion { font-size: 0.95rem; text-align: center; color: #78350f; background: transparent; }
+
+.bracket-vs-row {
+  text-align: center;
+  font-size: 0.65rem;
+  color: #9ca3af;
+  margin: 3px 0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* bracket connector line */
+.bracket-connector {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+}
+.bracket-connector-line {
+  width: 16px;
+  border-top: 2px solid #e5e7eb;
+}
+
+/* ===== SUMMARY BOX ===== */
+.summary-box {
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: #4338ca;
+  margin-bottom: 16px;
+}
+.summary-box span strong { color: #312e81; }
+
+/* ===== GENDER BADGES ===== */
+.gender-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.gender-남 { background: #dbeafe; color: #1d4ed8; }
+.gender-여 { background: #fce7f3; color: #be185d; }
+
+/* ===== DOUBLES RESULT TAG ===== */
+.doubles-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.doubles-men   { background: #dbeafe; color: #1d4ed8; }
+.doubles-women { background: #fce7f3; color: #be185d; }
+.doubles-mixed { background: #fef3c7; color: #92400e; }
+.doubles-both  { background: #ede9fe; color: #5b21b6; }
+
+/* ===== SCORE DEVIATION COLORS ===== */
+.deviation-good   { color: #10b981; }
+.deviation-ok     { color: #f59e0b; }
+.deviation-bad    { color: #ef4444; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal-box {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22);
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  color: white;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* ===== DOWNLOAD PREVIEW ===== */
+.preview-section-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #1f2937;
+  margin: 14px 0 6px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #e5e7eb;
+}
+.preview-section-title:first-child { margin-top: 0; }
+
+.preview-round-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6366f1;
+  margin: 7px 0 3px;
+}
+
+.preview-match-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  font-size: 0.8rem;
+  transition: opacity 0.15s;
+}
+.preview-match-row.is-deleted { opacity: 0.35; background: #f3f4f6; }
+.preview-match-row.is-deleted .preview-match-text { text-decoration: line-through; }
+.preview-match-text { flex: 1; color: #374151; }
+
+.preview-toggle-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee2e2;
+  color: #ef4444;
+  transition: filter 0.12s;
+}
+.preview-match-row.is-deleted .preview-toggle-btn { background: #d1fae5; color: #059669; }
+.preview-toggle-btn:hover { filter: brightness(0.88); }
+
+/* ===== GROUP ADD PARTICIPANT LIST ===== */
+.ga-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border: 1px solid transparent;
+}
+.ga-item:hover { background: #f5f3ff; border-color: #e0d9ff; }
+.ga-item.selected { background: #eef2ff; border-color: #c7d2fe; }
+.ga-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: #6366f1; flex-shrink: 0; }
+.ga-item-name { font-weight: 600; font-size: 0.875rem; color: #1f2937; }
+.ga-item-meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.ga-item-already { font-size: 0.7rem; color: #9ca3af; margin-left: auto; }
+
+/* ===== GROUP CARD FOOTER ===== */
+.group-card-footer {
+  padding: 10px 16px 12px;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== GROUND MATCH CARDS ===== */
+.ground-match-card {
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.ground-match-card:hover {
+  border-color: #a5b4fc;
+  background: #f5f3ff;
+}
+.ground-match-recommended {
+  background: #f0fdf4;
+  border-color: #6ee7b7;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.12);
+}
+.ground-match-recommended:hover {
+  background: #ecfdf5;
+  border-color: #34d399;
+}
+.ground-match-recommended-dim {
+  background: #f9fafb;
+  border-color: #d1fae5;
+}
+.ground-match-selected {
+  background: #eef2ff;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
+}
+.ground-match-selected:hover {
+  background: #e0e7ff;
+  border-color: #4f46e5;
+}
+
+.ground-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ground-badge-recommended { background: #d1fae5; color: #065f46; }
+.ground-badge-selected     { background: #e0e7ff; color: #3730a3; }
+.ground-badge-dim          { background: #f3f4f6; color: #9ca3af; font-size: 0.75rem; }
+
+/* ===== ROUND SWAP (대기자 교체) ===== */
+.swap-player-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #fff;
+  border: 1.5px solid #f59e0b;
+  border-radius: 5px;
+  padding: 1px 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #92400e;
+  transition: background 0.12s, border-color 0.12s;
+}
+.swap-player-btn:hover {
+  background: #fef3c7;
+  border-color: #d97706;
+}
+.swap-player-btn span { color: #b45309; font-size: 0.7rem; }
+
+.swap-guide-banner {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  color: #78350f;
+  text-align: center;
+}
+
+.swap-ctrl-btn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: filter 0.12s;
+  line-height: 1.4;
+}
+.swap-ctrl-btn:hover  { filter: brightness(0.9); }
+.swap-ctrl-edit       { background: #fffbeb; border-color: #fbbf24; color: #92400e; }
+.swap-ctrl-cancel     { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+.swap-ctrl-reset      { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .section-header { padding: 12px 16px; }
+  .bracket-round-col { min-width: 155px; }
+  .bracket-team-row  { max-width: 130px; font-size: 0.72rem; }
+}
