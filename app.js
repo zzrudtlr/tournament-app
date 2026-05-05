@@ -29,6 +29,9 @@ let groundSelections   = {}; // key: "groupIdx_roundIdx" → matchIdx (사용자
 let roundSwaps         = {}; // key: "gIdx_rIdx" → { round, matches, soloBye } (교체 결과)
 let roundEditMode      = null; // 현재 교체 편집 중인 라운드 key
 let dragState          = null; // { groupIdx, memberId } 드래그 중인 참가자
+let tournamentWinners  = {}; // { tid: { "roundIdx_matchIdx": 1|2 } }
+let manualSlots        = {}; // { tid: { "roundIdx_matchIdx_side": team[] } }
+let tbdModalCtx        = null; // { tid, roundIdx, matchIdx, isTeam1 }
 
 // ── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -551,9 +554,11 @@ function generateResults() {
     }
   }
 
-  groundSelections = {};
-  roundSwaps       = {};
-  roundEditMode    = null;
+  groundSelections  = {};
+  roundSwaps        = {};
+  roundEditMode     = null;
+  tournamentWinners = {};
+  manualSlots       = {};
   renderResults();
   document.getElementById('resultsSection').classList.remove('hidden');
   document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -629,6 +634,23 @@ function getPool(doublesType) {
 // ══════════════════════════════════════════════════════════════
 
 function onTeamSizeChange() { updateStats(); }
+
+function onCompetitionModeChange() {
+  const mode        = document.getElementById('competitionMode').value;
+  const teamModeWrap = document.getElementById('teamModeWrap');
+  if (mode === 'tournament') {
+    // 토너먼트 단독: 팀 구성은 항상 고정
+    const fixedRadio = document.querySelector('input[name="teamMode"][value="fixed"]');
+    if (fixedRadio) fixedRadio.checked = true;
+    teamModeWrap.style.opacity        = '0.45';
+    teamModeWrap.style.pointerEvents  = 'none';
+    teamModeWrap.title = '토너먼트 모드에서는 팀 구성이 고정됩니다.';
+  } else {
+    teamModeWrap.style.opacity       = '';
+    teamModeWrap.style.pointerEvents = '';
+    teamModeWrap.title               = '';
+  }
+}
 
 /** Standard snake-draft balancing (남복/여복/none) */
 function formBalancedGroups(pool, groupSize) {
@@ -1568,6 +1590,75 @@ function buildRoundRobinMatchesHTML(teams) {
   `;
 }
 
+// ── Tournament Winner Selection ─────────────────────────────
+
+function getEffectiveTeam(tournament, tid, roundIdx, matchIdx, isTeam1) {
+  let team = null;
+  if (roundIdx === 0) {
+    const m = tournament.rounds[0][matchIdx];
+    team = isTeam1 ? m.team1 : m.team2;
+  } else {
+    const prevMatchIdx = matchIdx * 2 + (isTeam1 ? 0 : 1);
+    const prevRound = tournament.rounds[roundIdx - 1];
+    if (prevRound && prevMatchIdx < prevRound.length) {
+      team = getMatchWinner(tournament, tid, roundIdx - 1, prevMatchIdx);
+    }
+  }
+  // 첫 라운드에서만 수동 배치 슬롯 사용 (상위 라운드는 항상 이전 승자에서만 채움)
+  if (!team && roundIdx === 0) {
+    const slotKey = `${roundIdx}_${matchIdx}_${isTeam1 ? 1 : 2}`;
+    team = (manualSlots[tid] || {})[slotKey] || null;
+  }
+  return team;
+}
+
+function isOriginalBYE(tournament, tid, roundIdx, matchIdx) {
+  // "원본 BYE": 대진표 생성 시 team1은 실제 팀, team2는 null (부전승)
+  // — "빈 슬롯(null vs null)"과 다름. 빈 슬롯은 자동 진출 X
+  if (roundIdx !== 0) return false;
+  const m = tournament.rounds[0][matchIdx];
+  return m.team1 !== null && m.team2 === null &&
+         !(manualSlots[tid]?.[`0_${matchIdx}_2`]); // team2를 수동 배치하면 BYE 아님
+}
+
+function getMatchWinner(tournament, tid, roundIdx, matchIdx) {
+  if (!tournament.rounds[roundIdx]?.[matchIdx]) return null;
+  const team1 = getEffectiveTeam(tournament, tid, roundIdx, matchIdx, true);
+  const team2 = getEffectiveTeam(tournament, tid, roundIdx, matchIdx, false);
+  if (!team1) return null;
+  if (!team2) {
+    // 원본 BYE(부전승)인 경우만 자동 진출, 빈 슬롯은 진출 안 함
+    return isOriginalBYE(tournament, tid, roundIdx, matchIdx) ? team1 : null;
+  }
+  const side = (tournamentWinners[tid] || {})[`${roundIdx}_${matchIdx}`];
+  if (side === 1) return team1;
+  if (side === 2) return team2;
+  return null;
+}
+
+function selectTournamentWinner(tid, roundIdx, matchIdx, side) {
+  if (!tournamentWinners[tid]) tournamentWinners[tid] = {};
+  const key = `${roundIdx}_${matchIdx}`;
+  const prev = tournamentWinners[tid][key];
+  clearDownstreamWinners(tid, roundIdx, matchIdx);
+  if (prev === side) {
+    delete tournamentWinners[tid][key];
+  } else {
+    tournamentWinners[tid][key] = side;
+  }
+  renderTournamentPanel();
+}
+
+function clearDownstreamWinners(tid, roundIdx, matchIdx) {
+  const nextRoundIdx = roundIdx + 1;
+  const nextMatchIdx = Math.floor(matchIdx / 2);
+  const nextKey = `${nextRoundIdx}_${nextMatchIdx}`;
+  if ((tournamentWinners[tid] || {})[nextKey] !== undefined) {
+    clearDownstreamWinners(tid, nextRoundIdx, nextMatchIdx);
+    delete tournamentWinners[tid][nextKey];
+  }
+}
+
 // ── Tournament results ──────────────────────────────────────
 function renderTournamentPanel() {
   const panel = document.getElementById('tournamentResultsPanel');
@@ -1583,7 +1674,7 @@ function renderTournamentPanel() {
       return `
         <div class="mb-8">
           <div class="p-3 rounded-xl border mb-3 text-sm font-bold ${headerCls}">${icon} ${s.label} — ${s.participantCount}명</div>
-          ${buildTournamentHTML(s.tournament)}
+          ${buildTournamentHTML(s.tournament, s.type)}
         </div>
       `;
     }).join('');
@@ -1591,26 +1682,31 @@ function renderTournamentPanel() {
   }
 
   if (!results.tournament) { panel.innerHTML = '<p class="text-gray-400 text-sm">토너먼트 대진이 없습니다.</p>'; return; }
-  panel.innerHTML = buildTournamentHTML(results.tournament);
+  panel.innerHTML = buildTournamentHTML(results.tournament, 'main');
 }
 
-function buildTournamentHTML(tournament) {
+function buildTournamentHTML(tournament, tid) {
   const { rounds, teamCount, byeCount } = tournament;
   const ROUND_NAMES = { 1: '결승', 2: '준결승', 4: '8강', 8: '16강', 16: '32강' };
+  const lastRoundIdx = rounds.length - 1;
+  const champion = lastRoundIdx >= 0 ? getMatchWinner(tournament, tid, lastRoundIdx, 0) : null;
+
   return `
     <div class="summary-box">
       <span>참가팀: <strong>${teamCount}팀</strong></span>
       ${byeCount ? `<span>부전승: <strong>${byeCount}개</strong></span>` : ''}
+      ${champion ? `<span>🏆 우승: <strong>${esc(teamLabel(champion))}</strong></span>` : ''}
     </div>
+    <p class="text-xs text-gray-400 mb-3">팀 이름을 클릭하면 승자로 선택됩니다. 다시 클릭하면 취소.</p>
     <div class="bracket-scroll">
       <div class="bracket-wrap">
-        ${rounds.map(matches => {
+        ${rounds.map((matches, roundIdx) => {
           const label = ROUND_NAMES[matches.length] || `${matches.length * 2}강`;
           return `
             <div class="bracket-round-col">
               <div class="bracket-round-label">${label}</div>
               <div class="bracket-matches-col">
-                ${matches.map(m => renderMatchCard(m)).join('')}
+                ${matches.map((m, matchIdx) => renderMatchCard(m, tournament, tid, roundIdx, matchIdx)).join('')}
               </div>
             </div>
           `;
@@ -1619,7 +1715,7 @@ function buildTournamentHTML(tournament) {
           <div class="bracket-round-label">우승</div>
           <div class="bracket-matches-col">
             <div class="bracket-match-card champion-card" style="margin:auto 0">
-              <div class="bracket-team-row champion">🏆 우승</div>
+              <div class="bracket-team-row champion">${champion ? `🏆 ${esc(teamLabel(champion))}` : '🏆 우승'}</div>
             </div>
           </div>
         </div>
@@ -1628,18 +1724,71 @@ function buildTournamentHTML(tournament) {
   `;
 }
 
-function renderMatchCard(match) {
-  const isBye  = !match.team2;
-  const t1Name = teamLabel(match.team1);
-  const t2Name = match.team2 ? teamLabel(match.team2) : 'BYE';
-  const t1Cls  = match.team1?.isTBD ? 'is-tbd' : '';
-  const t2Cls  = !match.team2 ? 'is-bye' : match.team2.isTBD ? 'is-tbd' : '';
+function renderMatchCard(match, tournament, tid, roundIdx, matchIdx) {
+  const team1 = getEffectiveTeam(tournament, tid, roundIdx, matchIdx, true);
+  const team2 = getEffectiveTeam(tournament, tid, roundIdx, matchIdx, false);
 
+  // round 0(첫 라운드)에서만 빈 슬롯에 수동 배치 가능
+  // round 1+의 빈 슬롯은 이전 라운드 승자가 자동으로 채워야 함 (클릭 불가)
+  const isFirstRound  = roundIdx === 0;
+  const t1Assignable  = !team1 && isFirstRound;  // 첫 라운드 빈 슬롯만 배치 가능
+  const t2Assignable  = !team2 && isFirstRound;  // 첫 라운드 빈 슬롯만 배치 가능
+  const t1StaticTBD   = !team1 && !isFirstRound; // 상위 라운드 미결 → 정적 TBD
+  const t2StaticTBD   = !team2 && !isFirstRound; // 상위 라운드 미결 → 정적 TBD
+
+  // 수동 배치 여부 (첫 라운드에서만 의미 있음)
+  const t1IsManual = isFirstRound && !!(manualSlots[tid]?.[`${roundIdx}_${matchIdx}_1`]);
+  const t2IsManual = isFirstRound && !!(manualSlots[tid]?.[`${roundIdx}_${matchIdx}_2`]);
+
+  const t1Name = team1 ? teamLabel(team1) : (t1Assignable ? '+ 참가자 배치' : 'TBD');
+  const t2Name = team2 ? teamLabel(team2) : (t2Assignable ? '+ 참가자 배치' : 'TBD');
+
+  const winnerSide    = (tournamentWinners[tid] || {})[`${roundIdx}_${matchIdx}`];
+  // 원본 BYE(부전승)일 때만 team1 자동 진출, 빈 슬롯(수동 미배치)은 자동 진출 X
+  const isBYEAuto     = !team2 && !!team1 && isOriginalBYE(tournament, tid, roundIdx, matchIdx);
+  const effectiveSide = isBYEAuto ? 1 : winnerSide;
+  const hasWinner     = effectiveSide !== undefined;
+  const canClick      = !!(team1 && team2); // 양쪽 모두 팀이 있을 때만 승자 선택
+
+  const t1Win = effectiveSide === 1;
+  const t2Win = effectiveSide === 2;
+
+  const t1Cls = ['bracket-team-row',
+    t1Assignable ? 'is-tbd-clickable' : '',
+    t1IsManual && !canClick ? 'is-manual' : '',
+    t1StaticTBD ? 'is-tbd' : '',
+    canClick ? 'is-clickable' : '',
+    t1Win ? 'is-winner' : (hasWinner ? 'is-loser' : ''),
+  ].filter(Boolean).join(' ');
+
+  const t2Cls = ['bracket-team-row',
+    t2Assignable ? 'is-tbd-clickable' : '',
+    t2IsManual && !canClick ? 'is-manual' : '',
+    t2StaticTBD ? 'is-tbd' : (!team2 && !t2Assignable && !isFirstRound ? '' : ''),
+    (!team2 && isFirstRound && !t2Assignable) ? 'is-bye' : '',
+    canClick ? 'is-clickable' : '',
+    t2Win ? 'is-winner' : (hasWinner ? 'is-loser' : ''),
+  ].filter(Boolean).join(' ');
+
+  let t1Click = '', t2Click = '';
+  if (canClick) {
+    t1Click = `onclick="selectTournamentWinner('${tid}',${roundIdx},${matchIdx},1)"`;
+    t2Click = `onclick="selectTournamentWinner('${tid}',${roundIdx},${matchIdx},2)"`;
+  } else {
+    // 첫 라운드 빈 슬롯 또는 수동 배치된 슬롯만 클릭 가능
+    if (t1Assignable || t1IsManual) t1Click = `onclick="openTBDModal('${tid}',${roundIdx},${matchIdx},true)"`;
+    if (t2Assignable || t2IsManual) t2Click = `onclick="openTBDModal('${tid}',${roundIdx},${matchIdx},false)"`;
+  }
+
+  const t1Label = team1 ? esc(t1Name) : `<span class="tbd-placeholder">${esc(t1Name)}</span>`;
+  const t2Label = team2 ? esc(t2Name) : `<span class="tbd-placeholder">${esc(t2Name)}</span>`;
+
+  const byeCard = isBYEAuto; // 원본 BYE 슬롯만 bye-card 스타일
   return `
-    <div class="bracket-match-card ${isBye ? 'bye-card' : ''}">
-      <div class="bracket-team-row ${t1Cls}" title="${esc(t1Name)}">${esc(t1Name)}</div>
+    <div class="bracket-match-card${byeCard ? ' bye-card' : ''}">
+      <div class="${t1Cls}" title="${esc(t1Name)}" ${t1Click}>${t1Label}</div>
       <div class="bracket-vs-row">VS</div>
-      <div class="bracket-team-row ${t2Cls}" title="${esc(t2Name)}">${esc(t2Name)}</div>
+      <div class="${t2Cls}" title="${esc(t2Name)}" ${t2Click}>${t2Label}</div>
     </div>
   `;
 }
@@ -1651,6 +1800,102 @@ function teamLabel(team) {
   return team.map(p => p.name).join(' / ');
 }
 
+
+// ── TBD Slot Manual Assignment Modal ───────────────────────
+
+function getTournamentByTid(tid) {
+  if (tid === 'main') return results.tournament;
+  return (results.sections || []).find(s => s.type === tid)?.tournament || null;
+}
+
+function openTBDModal(tid, roundIdx, matchIdx, isTeam1) {
+  if (roundIdx !== 0) return; // 첫 라운드(제일 아래 단계)에서만 배치 허용
+  tbdModalCtx = { tid, roundIdx, matchIdx, isTeam1 };
+  const tournament = getTournamentByTid(tid);
+  const ROUND_NAMES = { 1: '결승', 2: '준결승', 4: '8강', 8: '16강', 16: '32강' };
+  const roundMatches = tournament?.rounds[roundIdx];
+  const roundLabel   = roundMatches ? (ROUND_NAMES[roundMatches.length] || `${roundMatches.length * 2}강`) : `라운드 ${roundIdx + 1}`;
+  document.getElementById('tbdModalTitle').textContent = `${roundLabel} ${isTeam1 ? '위쪽' : '아래쪽'} 팀 배치`;
+  document.getElementById('tbdSearch').value = '';
+  renderTBDList('');
+  document.getElementById('tbdModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('tbdSearch').focus(), 50);
+}
+
+function closeTBDModal() {
+  document.getElementById('tbdModal').classList.add('hidden');
+  tbdModalCtx = null;
+}
+
+function filterTBDList() {
+  renderTBDList(document.getElementById('tbdSearch').value.trim().toLowerCase());
+}
+
+function renderTBDList(query) {
+  if (!tbdModalCtx) return;
+  const { tid, roundIdx, matchIdx, isTeam1 } = tbdModalCtx;
+  const slotKey     = `${roundIdx}_${matchIdx}_${isTeam1 ? 1 : 2}`;
+  const currentTeam = (manualSlots[tid] || {})[slotKey] || [];
+  const currentIds  = new Set(currentTeam.map(p => p.id));
+  const filtered    = participants.filter(p => !query || p.name.toLowerCase().includes(query));
+  const list        = document.getElementById('tbdList');
+  const empty       = document.getElementById('tbdEmpty');
+
+  if (!filtered.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  list.innerHTML = filtered.map(p => {
+    const checked  = currentIds.has(p.id) ? 'checked' : '';
+    const selected = currentIds.has(p.id) ? ' selected' : '';
+    return `
+      <label class="ga-item${selected}" onclick="toggleGaItem(this)">
+        <input type="checkbox" value="${p.id}" ${checked}>
+        <div class="flex-1 min-w-0">
+          <div class="ga-item-name">${esc(p.name)}</div>
+          <div class="ga-item-meta">
+            <span class="grade-badge grade-${p.grade}">${p.grade}</span>
+            ${p.gender ? `<span class="gender-badge gender-${p.gender}">${p.gender}</span>` : ''}
+            <span class="text-xs text-gray-400">${p.score}점</span>
+            ${p.affiliation ? `<span class="text-xs text-gray-400">${esc(p.affiliation)}</span>` : ''}
+          </div>
+        </div>
+      </label>`;
+  }).join('');
+}
+
+function clearTBDSlot() {
+  if (!tbdModalCtx) return;
+  const { tid, roundIdx, matchIdx, isTeam1 } = tbdModalCtx;
+  const slotKey = `${roundIdx}_${matchIdx}_${isTeam1 ? 1 : 2}`;
+  if (manualSlots[tid]) delete manualSlots[tid][slotKey];
+  clearDownstreamWinners(tid, roundIdx, matchIdx);
+  const wk = `${roundIdx}_${matchIdx}`;
+  if ((tournamentWinners[tid] || {})[wk]) delete tournamentWinners[tid][wk];
+  closeTBDModal();
+  renderTournamentPanel();
+}
+
+function submitTBDSelection() {
+  if (!tbdModalCtx) return;
+  const { tid, roundIdx, matchIdx, isTeam1 } = tbdModalCtx;
+  const checked = Array.from(document.querySelectorAll('#tbdList input:checked'));
+  if (!checked.length) { showToast('배치할 참가자를 선택해주세요.', 'error'); return; }
+  const ids  = new Set(checked.map(cb => parseInt(cb.value)));
+  const team = participants.filter(p => ids.has(p.id));
+  const slotKey = `${roundIdx}_${matchIdx}_${isTeam1 ? 1 : 2}`;
+  if (!manualSlots[tid]) manualSlots[tid] = {};
+  manualSlots[tid][slotKey] = team;
+  clearDownstreamWinners(tid, roundIdx, matchIdx);
+  const wk = `${roundIdx}_${matchIdx}`;
+  if ((tournamentWinners[tid] || {})[wk]) delete tournamentWinners[tid][wk];
+  closeTBDModal();
+  renderTournamentPanel();
+  showToast(team.map(p => p.name).join(' + ') + ' 배치 완료', 'success');
+}
 
 // ── Group Add Modal ─────────────────────────────────────────
 function openGroupAddModal(groupIdx) {

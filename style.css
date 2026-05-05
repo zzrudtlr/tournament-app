@@ -257,6 +257,68 @@
 .bracket-team-row.is-tbd  { color: #9ca3af; font-style: italic; font-weight: 400; }
 .bracket-team-row.champion { font-size: 0.95rem; text-align: center; color: #78350f; background: transparent; }
 
+.bracket-team-row.is-clickable {
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.bracket-team-row.is-clickable:hover {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+/* TBD 슬롯 — 클릭해서 참가자 배치 가능 */
+.bracket-team-row.is-tbd-clickable {
+  cursor: pointer;
+  color: #818cf8;
+  border: 1.5px dashed #c7d2fe;
+  background: #f5f3ff;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.bracket-team-row.is-tbd-clickable:hover {
+  background: #eef2ff;
+  border-color: #6366f1;
+  color: #4338ca;
+}
+.tbd-placeholder {
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+/* 수동 배치된 팀 — 재배치 가능 */
+.bracket-team-row.is-manual {
+  cursor: pointer;
+  border: 1.5px dashed #8b5cf6;
+  background: #faf5ff;
+  color: #5b21b6;
+  transition: background 0.15s, border-color 0.15s;
+}
+.bracket-team-row.is-manual:hover {
+  background: #ede9fe;
+  border-color: #7c3aed;
+}
+.bracket-team-row.is-winner {
+  background: #d1fae5;
+  color: #065f46;
+  font-weight: 700;
+  outline: 1.5px solid #6ee7b7;
+  position: relative;
+  padding-right: 22px;
+}
+.bracket-team-row.is-winner::after {
+  content: '✓';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: #059669;
+}
+.bracket-team-row.is-loser {
+  opacity: 0.38;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
 .bracket-vs-row {
   text-align: center;
   font-size: 0.65rem;
