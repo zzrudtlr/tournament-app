@@ -348,9 +348,31 @@
       <div class="modal-body" id="downloadPreviewBody"></div>
       <div class="modal-footer">
         <button onclick="closeDownloadPreview()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">닫기</button>
+        <button onclick="openCopyModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">📋 복사</button>
         <button onclick="executeDownload('txt')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📄 TXT</button>
         <button onclick="executeDownload('csv')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📊 CSV</button>
         <button onclick="executeDownload('json')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">🔧 JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Copy Text Modal -->
+  <div id="copyTextModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:560px">
+      <div class="modal-header">
+        <span class="font-bold text-base">📋 텍스트 복사</span>
+        <button onclick="closeCopyModal()" class="text-white/70 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-xs text-gray-500 mb-3">아래 내용을 전체 복사해서 사용하세요.</p>
+        <textarea id="copyTextContent" readonly
+          class="w-full font-mono text-xs border border-gray-200 rounded-lg p-3 bg-gray-50 resize-none focus:outline-none leading-relaxed"
+          style="height:55vh"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeCopyModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">닫기</button>
+        <button id="copyBtn" onclick="copyToClipboard()"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-medium">📋 전체 복사</button>
       </div>
     </div>
   </div>

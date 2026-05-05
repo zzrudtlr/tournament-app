@@ -1669,35 +1669,51 @@ function previewMatchRow(id, label) {
 
 function renderPreviewBody() {
   const body       = document.getElementById('downloadPreviewBody');
-  const flatGroups = getFlatGroups();
   let html = '';
+  let flatIdx = 0;
 
-  flatGroups.forEach(function(g, gi) {
-    html += '<div class="preview-section-title">' + esc(g.name) + ' (' + g.members.length + '명)</div>';
+  function renderGroupPreview(g, gi) {
+    var out = '<div class="preview-section-title">' + esc(g.name) + '</div>';
     if (g.rounds) {
-      g.rounds.forEach(function(r) {
-        html += '<div class="preview-round-title">라운드 ' + r.round + '</div>';
-        r.matches.forEach(function(m, mi) {
+      g.rounds.forEach(function(origR, roundIdx) {
+        var swapped = roundSwaps[gi + '_' + roundIdx];
+        var matches = swapped ? swapped.matches : origR.matches;
+        out += '<div class="preview-round-title">라운드 ' + origR.round + '</div>';
+        matches.forEach(function(m, mi) {
           if (!m.team2) return;
-          const id = 'g' + gi + '-r' + r.round + '-m' + mi;
-          const t1 = m.team1.map(function(p) { return p.name; }).join('+');
-          const t2 = m.team2.map(function(p) { return p.name; }).join('+');
-          html += previewMatchRow(id, '경기 ' + (mi + 1) + ': ' + t1 + ' vs ' + t2);
+          var id = 'g' + gi + '-r' + origR.round + '-m' + mi;
+          var t1 = m.team1.map(function(p) { return p.name; }).join('+');
+          var t2 = m.team2.map(function(p) { return p.name; }).join('+');
+          out += previewMatchRow(id, '경기 ' + (mi + 1) + ': ' + t1 + ' vs ' + t2);
         });
       });
     } else if (g.teams) {
       var schedule = buildRoundRobinSchedule(g.teams);
       schedule.forEach(function(r) {
-        html += '<div class="preview-round-title">라운드 ' + r.round + '</div>';
+        out += '<div class="preview-round-title">라운드 ' + r.round + '</div>';
         r.matches.forEach(function(m) {
-          const id = 'g' + gi + '-t' + m.ti + '-t' + m.tj;
-          const t1 = m.team1.map(function(p) { return p.name; }).join('+');
-          const t2 = m.team2.map(function(p) { return p.name; }).join('+');
-          html += previewMatchRow(id, t1 + ' vs ' + t2);
+          var id = 'g' + gi + '-t' + m.ti + '-t' + m.tj;
+          var t1 = m.team1.map(function(p) { return p.name; }).join('+');
+          var t2 = m.team2.map(function(p) { return p.name; }).join('+');
+          out += previewMatchRow(id, t1 + ' vs ' + t2);
         });
       });
     }
-  });
+    return out;
+  }
+
+  if (results.doublesType === 'both' && results.sections) {
+    results.sections.forEach(function(section) {
+      var icon = section.type === 'men' ? '🟦' : '🟥';
+      html += '<div class="preview-doubles-header preview-doubles-' + section.type + '">' + icon + ' ' + esc(section.label) + '</div>';
+      (section.groups || []).forEach(function(g) { html += renderGroupPreview(g, flatIdx++); });
+    });
+  } else {
+    var dt   = results.doublesType;
+    var meta = dt && dt !== 'none' ? DOUBLES_META[dt] : null;
+    if (meta) html += '<div class="preview-doubles-header preview-doubles-' + dt + '">' + (meta.icon ? meta.icon + ' ' : '') + esc(meta.label) + '</div>';
+    getFlatGroups().forEach(function(g) { html += renderGroupPreview(g, flatIdx++); });
+  }
 
   const tour = results.tournament || (results.sections && results.sections.reduce(function(acc, s) { return acc || s.tournament; }, null));
   if (tour) {
@@ -1850,45 +1866,60 @@ function buildCSV() {
 
 
 // ── Filtered TXT (respects preview deletions) ───────────────
+function appendGroupTXT(L, g, gi) {
+  L.push('\n─ ' + g.name);
+  if (g.rounds) {
+    L.push('  [유동 라운드 대진]');
+    g.rounds.forEach(function(origR, roundIdx) {
+      var swapped = roundSwaps[gi + '_' + roundIdx];
+      var matches = swapped ? swapped.matches : origR.matches;
+      var hasVisible = matches.some(function(m, mi) {
+        return m.team2 && !previewDeletedIds.has('g' + gi + '-r' + origR.round + '-m' + mi);
+      });
+      if (!hasVisible) return;
+      L.push('    라운드 ' + origR.round + ':');
+      matches.forEach(function(m, mi) {
+        if (!m.team2) return;
+        if (previewDeletedIds.has('g' + gi + '-r' + origR.round + '-m' + mi)) return;
+        var t1 = m.team1.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
+        var t2 = m.team2.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
+        L.push('      경기 ' + (mi + 1) + ': ' + t1 + '  vs  ' + t2);
+      });
+    });
+  } else if (g.teams) {
+    L.push('  [대진]');
+    var schedule = buildRoundRobinSchedule(g.teams);
+    schedule.forEach(function(r) {
+      var rMatches = r.matches.filter(function(m) {
+        return !previewDeletedIds.has('g' + gi + '-t' + m.ti + '-t' + m.tj);
+      });
+      if (!rMatches.length) return;
+      L.push('    라운드 ' + r.round + ':');
+      rMatches.forEach(function(m) {
+        var t1 = m.team1.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
+        var t2 = m.team2.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
+        L.push('      ' + t1 + '  vs  ' + t2);
+      });
+    });
+  }
+}
+
 function buildTXTFiltered() {
   const L = [];
+  var flatIdx = 0;
 
-  const flatGroups = getFlatGroups();
-  flatGroups.forEach(function(g, gi) {
-    L.push('\n─ ' + g.name);
-    if (g.rounds) {
-      L.push('  [유동 라운드 대진]');
-      g.rounds.forEach(function(r) {
-        var hasVisible = r.matches.some(function(m, mi) {
-          return m.team2 && !previewDeletedIds.has('g' + gi + '-r' + r.round + '-m' + mi);
-        });
-        if (!hasVisible) return;
-        L.push('    라운드 ' + r.round + ':');
-        r.matches.forEach(function(m, mi) {
-          if (!m.team2) return;
-          if (previewDeletedIds.has('g' + gi + '-r' + r.round + '-m' + mi)) return;
-          var t1 = m.team1.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
-          var t2 = m.team2.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
-          L.push('      경기 ' + (mi + 1) + ': ' + t1 + '  vs  ' + t2);
-        });
-      });
-    } else if (g.teams) {
-      L.push('  [대진]');
-      var schedule = buildRoundRobinSchedule(g.teams);
-      schedule.forEach(function(r) {
-        var rMatches = r.matches.filter(function(m) {
-          return !previewDeletedIds.has('g' + gi + '-t' + m.ti + '-t' + m.tj);
-        });
-        if (!rMatches.length) return;
-        L.push('    라운드 ' + r.round + ':');
-        rMatches.forEach(function(m) {
-          var t1 = m.team1.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
-          var t2 = m.team2.map(function(p) { return p.name + '(' + p.grade + ')'; }).join('+');
-          L.push('      ' + t1 + '  vs  ' + t2);
-        });
-      });
-    }
-  });
+  if (results.doublesType === 'both' && results.sections) {
+    results.sections.forEach(function(section) {
+      var icon = section.type === 'men' ? '🟦' : '🟥';
+      L.push('\n══ ' + icon + ' ' + section.label + ' ══');
+      (section.groups || []).forEach(function(g) { appendGroupTXT(L, g, flatIdx++); });
+    });
+  } else {
+    var dt   = results.doublesType;
+    var meta = dt && dt !== 'none' ? DOUBLES_META[dt] : null;
+    if (meta) L.push('[ ' + (meta.icon ? meta.icon + ' ' : '') + meta.label + ' ]');
+    getFlatGroups().forEach(function(g) { appendGroupTXT(L, g, flatIdx++); });
+  }
 
   var tour = results.tournament || (results.sections && results.sections.reduce(function(a, s) { return a || s.tournament; }, null));
   if (tour) {
@@ -1941,6 +1972,36 @@ function buildCSVFiltered() {
   }
   return rows.join('\n');
 }
+// ── Copy Modal ──────────────────────────────────────────────
+function openCopyModal() {
+  if (!results) return;
+  closeDownloadPreview();
+  document.getElementById('copyTextContent').value = buildTXTFiltered();
+  document.getElementById('copyTextModal').classList.remove('hidden');
+}
+
+function closeCopyModal() {
+  document.getElementById('copyTextModal').classList.add('hidden');
+}
+
+async function copyToClipboard() {
+  const ta  = document.getElementById('copyTextContent');
+  const btn = document.getElementById('copyBtn');
+  try {
+    await navigator.clipboard.writeText(ta.value);
+  } catch (_) {
+    // 구형 모바일 브라우저 대비 fallback
+    ta.select();
+    ta.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+  }
+  const orig = btn.textContent;
+  btn.textContent = '✅ 복사됨!';
+  btn.disabled = true;
+  setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
+  showToast('클립보드에 복사되었습니다.', 'success');
+}
+
 function triggerDownload(content, filename, mime) {
   const blob = new Blob([content], { type: mime });
   const url  = URL.createObjectURL(blob);
