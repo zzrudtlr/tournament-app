@@ -1508,15 +1508,6 @@ function teamLabel(team) {
   return team.map(p => p.name).join(' / ');
 }
 
-// ── JSON Toggle ─────────────────────────────────────────────
-function toggleJsonView() {
-  const sec    = document.getElementById('jsonSection');
-  const btn    = document.getElementById('jsonToggleBtn');
-  const hidden = sec.classList.contains('hidden');
-  sec.classList.toggle('hidden', !hidden);
-  btn.textContent = hidden ? '🔧 JSON 숨기기' : '🔧 JSON 결과 보기';
-  if (hidden) document.getElementById('jsonContent').textContent = JSON.stringify(results, null, 2);
-}
 
 // ── Group Add Modal ─────────────────────────────────────────
 function openGroupAddModal(groupIdx) {
@@ -1640,10 +1631,17 @@ function regenerateGroupAt(groupIdx) {
 }
 
 // ── Download Preview ────────────────────────────────────────
+function isMobile() {
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 640;
+}
+
 function openDownloadPreview() {
   if (!results) { showToast('먼저 결과를 생성해주세요.', 'error'); return; }
   previewDeletedIds.clear();
   renderPreviewBody();
+  const mobile = isMobile();
+  document.getElementById('dlTxtBtn').classList.toggle('hidden', mobile);
+  document.getElementById('dlCsvBtn').classList.toggle('hidden', mobile);
   document.getElementById('downloadPreviewModal').classList.remove('hidden');
 }
 
@@ -1736,8 +1734,7 @@ function executeDownload(fmt) {
   if (!results) return;
   const date = new Date().toISOString().slice(0, 10);
   const base = 'tournament_' + date;
-  if (fmt === 'json') triggerDownload(JSON.stringify(results, null, 2), base + '.json', 'application/json');
-  else if (fmt === 'txt') triggerDownload(buildTXTFiltered(), base + '.txt', 'text/plain;charset=utf-8');
+  if (fmt === 'txt') triggerDownload(buildTXTFiltered(), base + '.txt', 'text/plain;charset=utf-8');
   else if (fmt === 'csv') triggerDownload('﻿' + buildCSVFiltered(), base + '.csv', 'text/csv;charset=utf-8');
   closeDownloadPreview();
   showToast('다운로드가 완료되었습니다.', 'success');

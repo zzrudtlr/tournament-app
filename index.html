@@ -302,14 +302,6 @@
           <div id="groupResultsPanel"></div>
           <div id="tournamentResultsPanel" class="hidden"></div>
           <div id="groundResultsPanel" class="hidden"></div>
-          <div class="mt-6 border-t pt-4">
-            <button id="jsonToggleBtn" onclick="toggleJsonView()"
-              class="text-sm text-indigo-500 hover:text-indigo-700 font-medium">🔧 JSON 결과 보기</button>
-            <div id="jsonSection" class="hidden mt-3">
-              <pre id="jsonContent"
-                class="bg-gray-900 text-green-400 p-4 rounded-xl text-xs overflow-x-auto max-h-72 overflow-y-auto leading-relaxed"></pre>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -349,9 +341,8 @@
       <div class="modal-footer">
         <button onclick="closeDownloadPreview()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">닫기</button>
         <button onclick="openCopyModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">📋 복사</button>
-        <button onclick="executeDownload('txt')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📄 TXT</button>
-        <button onclick="executeDownload('csv')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📊 CSV</button>
-        <button onclick="executeDownload('json')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">🔧 JSON</button>
+        <button id="dlTxtBtn" onclick="executeDownload('txt')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📄 TXT</button>
+        <button id="dlCsvBtn" onclick="executeDownload('csv')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📊 CSV</button>
       </div>
     </div>
   </div>
