@@ -461,6 +461,37 @@
 .ga-item-meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .ga-item-already { font-size: 0.7rem; color: #9ca3af; margin-left: auto; }
 
+/* ===== DRAG AND DROP ===== */
+.member-drag-row {
+  cursor: grab;
+  transition: opacity 0.15s;
+}
+.member-drag-row:active { cursor: grabbing; }
+.member-drag-row.member-dragging { opacity: 0.35; }
+
+.move-group-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  text-align: left;
+}
+.move-group-btn:hover,
+.move-group-btn:active { background: #eef2ff; border-color: #a5b4fc; }
+
+.group-card.drag-target {
+  border: 2px dashed #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 4px 16px rgba(0,0,0,0.1);
+}
+.group-card.drag-target .group-card-header {
+  background: linear-gradient(135deg, #4f46e5, #6d28d9);
+}
+
 /* ===== GROUP CARD FOOTER ===== */
 .group-card-footer {
   padding: 10px 16px 12px;

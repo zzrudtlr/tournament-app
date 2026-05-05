@@ -28,6 +28,7 @@ let selectedFluidCombos = {};
 let groundSelections   = {}; // key: "groupIdx_roundIdx" → matchIdx (사용자가 직접 선택)
 let roundSwaps         = {}; // key: "gIdx_rIdx" → { round, matches, soloBye } (교체 결과)
 let roundEditMode      = null; // 현재 교체 편집 중인 라운드 key
+let dragState          = null; // { groupIdx, memberId } 드래그 중인 참가자
 
 // ── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -78,7 +79,7 @@ function switchInputTab(tab) {
 
 // ── Result Tabs ────────────────────────────────────────────
 function switchResultTab(tab) {
-  ['groups', 'tournament', 'ground'].forEach(t => {
+  ['groups', 'tournament'].forEach(t => {
     const panel = document.getElementById(t + 'ResultsPanel');
     const btn   = document.getElementById('resultTab' + t.charAt(0).toUpperCase() + t.slice(1));
     if (panel) panel.classList.toggle('hidden', t !== tab);
@@ -910,6 +911,138 @@ function generateFluidRounds(members) {
   return rounds;
 }
 
+// ── Drag-and-Drop (참가자 그룹 간 이동) ──────────────────────
+
+function onMemberDragStart(e, groupIdx, memberId) {
+  dragState = { groupIdx, memberId };
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(memberId));
+  e.currentTarget.classList.add('member-dragging');
+}
+
+function onMemberDragEnd(e) {
+  e.currentTarget.classList.remove('member-dragging');
+  document.querySelectorAll('.group-card.drag-target').forEach(el => el.classList.remove('drag-target'));
+}
+
+function onGroupDragOver(e, targetGroupIdx) {
+  if (!dragState || dragState.groupIdx === targetGroupIdx) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function onGroupDragEnter(e, targetGroupIdx) {
+  if (!dragState || dragState.groupIdx === targetGroupIdx) return;
+  e.currentTarget.closest('.group-card')?.classList.add('drag-target');
+}
+
+function onGroupDragLeave(e) {
+  const card = e.currentTarget.closest('.group-card');
+  if (card && !card.contains(e.relatedTarget)) card.classList.remove('drag-target');
+}
+
+function onGroupDrop(e, targetGroupIdx) {
+  e.preventDefault();
+  e.currentTarget.closest('.group-card')?.classList.remove('drag-target');
+  if (!dragState || dragState.groupIdx === targetGroupIdx) { dragState = null; return; }
+
+  const { groupIdx: srcIdx, memberId } = dragState;
+  dragState = null;
+
+  const flatGroups = getFlatGroups();
+  const src = flatGroups[srcIdx];
+  const tgt = flatGroups[targetGroupIdx];
+  if (!src || !tgt) return;
+
+  if (src.members.length <= 1) {
+    showToast('그룹의 마지막 참가자는 이동할 수 없습니다.', 'error');
+    return;
+  }
+
+  const idx = src.members.findIndex(m => m.id === memberId);
+  if (idx === -1) return;
+
+  const member = src.members.splice(idx, 1)[0];
+  tgt.members.push(member);
+
+  regenerateGroupAt(srcIdx);
+  regenerateGroupAt(targetGroupIdx);
+  showToast(`${member.name} → ${tgt.name} 이동`, 'success');
+}
+
+// ── Long-press → 그룹 이동 (모바일) ──────────────────────────
+
+let longPressTimer  = null;
+let longPressMember = null; // { groupIdx, memberId }
+
+function onMemberTouchStart(e, groupIdx, memberId) {
+  longPressMember = { groupIdx, memberId };
+  longPressTimer  = setTimeout(() => {
+    longPressTimer = null;
+    if (navigator.vibrate) navigator.vibrate(40);
+    openMoveModal(groupIdx, memberId);
+  }, 500);
+}
+
+function onMemberTouchEnd() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+}
+
+function onMemberTouchMove() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+}
+
+function openMoveModal(groupIdx, memberId) {
+  const flatGroups = getFlatGroups();
+  const member     = flatGroups[groupIdx]?.members.find(m => m.id === memberId);
+  if (!member) return;
+
+  document.getElementById('moveMemberTitle').textContent = member.name + ' — 그룹 이동';
+
+  const list = document.getElementById('moveMemberList');
+  list.innerHTML = flatGroups.map((g, gi) => {
+    if (gi === groupIdx) return '';
+    return `
+      <button onclick="moveMemberToGroup(${groupIdx},${memberId},${gi})"
+        class="move-group-btn">
+        <span class="font-semibold text-gray-800">${esc(g.name)}</span>
+        <span class="text-xs text-gray-400 ml-1">(${g.members.length}명)</span>
+        <span class="ml-auto text-indigo-500 text-sm">→</span>
+      </button>`;
+  }).join('');
+
+  document.getElementById('moveMemberModal').classList.remove('hidden');
+}
+
+function closeMoveModal() {
+  document.getElementById('moveMemberModal').classList.add('hidden');
+  longPressMember = null;
+}
+
+function moveMemberToGroup(srcIdx, memberId, tgtIdx) {
+  const flatGroups = getFlatGroups();
+  const src = flatGroups[srcIdx];
+  const tgt = flatGroups[tgtIdx];
+  if (!src || !tgt) return;
+
+  if (src.members.length <= 1) {
+    showToast('그룹의 마지막 참가자는 이동할 수 없습니다.', 'error');
+    closeMoveModal();
+    return;
+  }
+
+  const idx = src.members.findIndex(m => m.id === memberId);
+  if (idx === -1) return;
+
+  const member = src.members.splice(idx, 1)[0];
+  tgt.members.push(member);
+
+  regenerateGroupAt(srcIdx);
+  regenerateGroupAt(tgtIdx);
+  showToast(`${member.name} → ${tgt.name} 이동`, 'success');
+  closeMoveModal();
+}
+
 // ── Ground / Court Assignment ──────────────────────────────
 
 // ── Round Swap (대기자 ↔ 경기자 교체) ─────────────────────────
@@ -1152,20 +1285,15 @@ function renderResults() {
 
   const hasGroups     = results.groups || (results.sections && results.sections.some(s => s.groups));
   const hasTournament = results.tournament || (results.sections && results.sections.some(s => s.tournament));
-  const hasGround     = (results.groups && results.groups.some(g => g.rounds && g.rounds.length)) ||
-                        (results.sections && results.sections.some(s => s.groups && s.groups.some(g => g.rounds && g.rounds.length)));
 
   document.getElementById('resultTabGroups').classList.toggle('hidden', !hasGroups);
   document.getElementById('resultTabTournament').classList.toggle('hidden', !hasTournament);
-  document.getElementById('resultTabGround').classList.toggle('hidden', !hasGround);
 
   renderGroupsPanel();
   renderTournamentPanel();
-  renderGroundPanel();
 
-  if (hasGroups)           switchResultTab('groups');
-  else if (hasTournament)  switchResultTab('tournament');
-  else if (hasGround)      switchResultTab('ground');
+  if (hasGroups)          switchResultTab('groups');
+  else if (hasTournament) switchResultTab('tournament');
 }
 
 // ── Group results ───────────────────────────────────────────
@@ -1241,8 +1369,12 @@ function renderGroupCard(group, groupIdx = -1) {
   const isFluid     = !!group.rounds;
   const idAttr      = groupIdx >= 0 ? `id="group-card-${groupIdx}"` : '';
 
+  const dropAttrs = groupIdx >= 0
+    ? `ondragover="onGroupDragOver(event,${groupIdx})" ondragenter="onGroupDragEnter(event,${groupIdx})" ondragleave="onGroupDragLeave(event)" ondrop="onGroupDrop(event,${groupIdx})"`
+    : '';
+
   return `
-    <div class="group-card" ${idAttr}>
+    <div class="group-card" ${idAttr} ${dropAttrs}>
       <div class="group-card-header">
         <h3 class="font-bold text-lg">${esc(group.name)}</h3>
         <div class="text-xs opacity-80">총점 ${group.totalScore} / 평균 ${group.avgScore}</div>
@@ -1254,12 +1386,23 @@ function renderGroupCard(group, groupIdx = -1) {
 
         <!-- Members -->
         <div class="mb-4">
-          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">참가자 (${group.members.length}명)</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase mb-2">참가자 (${group.members.length}명)
+            ${groupIdx >= 0 ? '<span class="text-gray-300 font-normal normal-case ml-1">↔ 드래그로 그룹 이동</span>' : ''}
+          </p>
           <table class="w-full text-sm">
             <tbody>
               ${group.members.map((m, i) => `
-                <tr class="border-b border-gray-50 last:border-0">
-                  <td class="py-1.5 pr-2 text-gray-400 text-xs w-5">${i + 1}</td>
+                <tr class="border-b border-gray-50 last:border-0 member-drag-row"
+                  ${groupIdx >= 0 ? `
+                    draggable="true"
+                    ondragstart="onMemberDragStart(event,${groupIdx},${m.id})"
+                    ondragend="onMemberDragEnd(event)"
+                    ontouchstart="onMemberTouchStart(event,${groupIdx},${m.id})"
+                    ontouchend="onMemberTouchEnd()"
+                    ontouchmove="onMemberTouchMove()"
+                    oncontextmenu="return false"
+                  ` : ''}>
+                  <td class="py-1.5 pr-2 text-gray-300 text-xs w-4">${groupIdx >= 0 ? '⠿' : i + 1}</td>
                   <td class="py-1.5 pr-2 font-medium">${esc(m.name)}</td>
                   <td class="py-1.5 pr-2"><span class="grade-badge grade-${m.grade}">${m.grade}</span></td>
                   ${isMixed || m.gender

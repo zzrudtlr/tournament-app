@@ -296,12 +296,9 @@
               class="result-tab active-result-tab px-4 py-2 text-sm font-medium">📋 조편성</button>
             <button id="resultTabTournament" onclick="switchResultTab('tournament')"
               class="result-tab px-4 py-2 text-sm font-medium text-gray-400">🏅 토너먼트</button>
-            <button id="resultTabGround" onclick="switchResultTab('ground')"
-              class="result-tab hidden px-4 py-2 text-sm font-medium text-gray-400">🏟️ 그라운드</button>
           </div>
           <div id="groupResultsPanel"></div>
           <div id="tournamentResultsPanel" class="hidden"></div>
-          <div id="groundResultsPanel" class="hidden"></div>
         </div>
       </div>
     </div>
@@ -343,6 +340,23 @@
         <button onclick="openCopyModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">📋 복사</button>
         <button id="dlTxtBtn" onclick="executeDownload('txt')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📄 TXT</button>
         <button id="dlCsvBtn" onclick="executeDownload('csv')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium">📊 CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Move Member Modal (모바일 꾹 누르기) -->
+  <div id="moveMemberModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:340px">
+      <div class="modal-header">
+        <span id="moveMemberTitle" class="font-bold text-base">그룹 이동</span>
+        <button onclick="closeMoveModal()" class="text-white/70 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-xs text-gray-500 mb-3">이동할 그룹을 선택하세요</p>
+        <div id="moveMemberList" class="space-y-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeMoveModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm w-full">취소</button>
       </div>
     </div>
   </div>
